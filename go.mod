@@ -1,3 +1,5 @@
-module github.com/clockwerk-labs/ratukas
+module github.com/clockwerk-labs/htw
 
-go 1.26.2
+go 1.26.4
+
+require github.com/google/uuid v1.6.0

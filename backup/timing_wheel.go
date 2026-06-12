@@ -1,24 +1,24 @@
-package ratukas
+package backup
 
 import (
 	"sync/atomic"
 	"time"
 )
 
-type TimingWheel struct {
+type TimingWheel2 struct {
 	tick     int64
 	size     int64
 	interval int64
 	buckets  []*Bucket
 	expiry   chan<- *Bucket
 	now      atomic.Int64
-	overflow atomic.Pointer[TimingWheel]
+	overflow atomic.Pointer[TimingWheel2]
 }
 
-func NewTimingWheel(start time.Time, tick time.Duration, size int64, expiry chan<- *Bucket) *TimingWheel {
+func NewTimingWheel2(start time.Time, tick time.Duration, size int64, expiry chan<- *Bucket) *TimingWheel2 {
 	startMs, tickMs := start.UnixMilli(), tick.Milliseconds()
 
-	tw := &TimingWheel{
+	tw := &TimingWheel2{
 		tick:     tickMs,
 		size:     size,
 		interval: tickMs * size,
@@ -35,7 +35,7 @@ func NewTimingWheel(start time.Time, tick time.Duration, size int64, expiry chan
 	return tw
 }
 
-func (w *TimingWheel) Add(key uint64, expiration int64) bool {
+func (w *TimingWheel2) Add(key uint64, expiration int64) bool {
 	now := w.now.Load()
 
 	if expiration < now+w.tick {
@@ -58,7 +58,7 @@ func (w *TimingWheel) Add(key uint64, expiration int64) bool {
 	return overflow.Add(key, expiration)
 }
 
-func (w *TimingWheel) AdvanceTime(expiration int64) {
+func (w *TimingWheel2) AdvanceTime(expiration int64) {
 	for {
 		now := w.now.Load()
 
@@ -78,12 +78,12 @@ func (w *TimingWheel) AdvanceTime(expiration int64) {
 	}
 }
 
-func (w *TimingWheel) ascend() *TimingWheel {
+func (w *TimingWheel2) ascend() *TimingWheel2 {
 	if v := w.overflow.Load(); v != nil {
 		return v
 	}
 
-	overflow := NewTimingWheel(
+	overflow := NewTimingWheel2(
 		time.UnixMilli(w.now.Load()),
 		time.Duration(w.interval)*time.Millisecond,
 		w.size,

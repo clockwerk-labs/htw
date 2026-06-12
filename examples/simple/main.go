@@ -2,23 +2,29 @@ package main
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"log"
-	"log/slog"
-	"math/rand"
-	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
-	"github.com/clockwerk-labs/ratukas"
+	"github.com/clockwerk-labs/htw"
+	"github.com/google/uuid"
 )
 
-type Callback func() error
+type (
+	Executable func() error
+)
 
 func main() {
-	log.Println("Running example simulation")
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer cancel()
 
-	out := make(chan Callback)
+	startTime := time.Now()
+	wheel := htw.NewTimingWheel[Executable](1*time.Second, startTime, 60)
+
+	out := make(chan Executable)
 	defer close(out)
 
 	go func() {
@@ -29,29 +35,26 @@ func main() {
 		}
 	}()
 
-	engine := ratukas.NewEngine(
-		time.Now(),
-		100*time.Millisecond,
-		16192,
-		ratukas.NewTaskRegistry[Callback](1024),
-		slog.New(slog.NewJSONHandler(os.Stdout, nil)),
-		out,
-	)
+	engine := htw.NewEngine(wheel, out)
 
-	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer cancel()
+	go func() {
+		if err := engine.Run(ctx, time.Second); errors.Is(err, context.Canceled) {
+			return
+		} else if err != nil {
+			panic(err)
+		}
+	}()
 
-	go engine.Run(ctx)
+	task := htw.NewTask[Executable](uuid.New(), startTime.Add(5*time.Second), func() error {
+		fmt.Println("Hello World")
 
-	for i := 0; i < 1_000_000; i++ {
-		now := time.Now()
-		expiration := now.Add(time.Duration(rand.Intn(31)+10) * time.Second)
+		return nil
+	})
 
-		engine.AddTask(uint64(i)+1, ratukas.NewTask[Callback](expiration, func() error {
-			log.Printf("Running task %d, expiration %s, delay: %d", i+1, expiration.String(), time.Now().Sub(now).Milliseconds())
-
-			return nil
-		}))
+	if ok := wheel.Add(task); ok {
+		log.Println("Scheduled task")
+	} else {
+		log.Println("Task not scheduled")
 	}
 
 	<-ctx.Done()
