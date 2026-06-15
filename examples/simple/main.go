@@ -35,27 +35,34 @@ func main() {
 		}
 	}()
 
-	engine := htw.NewEngine(wheel, out)
+	clock := htw.NewTickerClock(time.Second)
+	defer clock.Stop()
+
+	engine := htw.NewEngine(wheel, clock, out)
 
 	go func() {
-		if err := engine.Run(ctx, time.Second); errors.Is(err, context.Canceled) {
+		if err := engine.Run(ctx); errors.Is(err, context.Canceled) {
 			return
 		} else if err != nil {
 			panic(err)
 		}
 	}()
 
-	task := htw.NewTask[Executable](uuid.New(), startTime.Add(5*time.Second), func() error {
-		fmt.Println("Hello World")
+	for i := 0; i < 100; i++ {
+		task := htw.NewTask[Executable](uuid.New(), startTime.Add(5*time.Second), func() error {
+			fmt.Printf("Hello World %d!\n", i)
 
-		return nil
-	})
+			return nil
+		})
 
-	if ok := wheel.Add(task); ok {
-		log.Println("Scheduled task")
-	} else {
-		log.Println("Task not scheduled")
+		if ok := wheel.Add(task); ok {
+			log.Println("Scheduled task")
+		} else {
+			log.Println("Task not scheduled")
+		}
 	}
 
 	<-ctx.Done()
+
+	log.Println("Engine exited")
 }
