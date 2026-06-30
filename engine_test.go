@@ -2,6 +2,8 @@ package htw_test
 
 import (
 	"context"
+	"errors"
+	"sync"
 	"testing"
 	"time"
 
@@ -97,4 +99,41 @@ func TestEngine_DeterministicExecution(t *testing.T) {
 	case <-time.After(50 * time.Millisecond):
 		t.Fatal("Engine failed to exit when context was canceled")
 	}
+}
+
+func BenchmarkEngine_Throughput(b *testing.B) {
+	startTime := time.Now()
+	wheel := htw.NewTimingWheel[int](1*time.Millisecond, startTime, 100)
+	outChan := make(chan int, b.N)
+
+	for i := 0; i < b.N; i++ {
+		wheel.Add(htw.NewTask(startTime.Add(5*time.Millisecond), i))
+	}
+
+	mockClock := NewFakeClock(startTime)
+	engine := htw.NewEngine(wheel, mockClock, outChan)
+
+	go func() {
+		if err := engine.Run(b.Context()); err != nil && !errors.Is(err, context.Canceled) {
+			b.Error(err)
+		}
+	}()
+
+	var wg sync.WaitGroup
+	wg.Go(func() {
+		count := 0
+		for range outChan {
+			count++
+
+			if count == b.N {
+				return
+			}
+		}
+	})
+
+	for i := 0; i < 10; i++ {
+		mockClock.Tick(1 * time.Millisecond)
+	}
+
+	wg.Wait()
 }
