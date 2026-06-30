@@ -114,7 +114,9 @@ func BenchmarkEngine_Throughput(b *testing.B) {
 	engine := htw.NewEngine(wheel, mockClock, outChan)
 
 	go func() {
-		if err := engine.Run(b.Context()); err != nil && !errors.Is(err, context.Canceled) {
+		if err := engine.Run(b.Context()); errors.Is(err, context.Canceled) {
+			return
+		} else if err != nil {
 			b.Error(err)
 		}
 	}()
