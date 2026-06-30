@@ -70,9 +70,8 @@ func main() {
 		}
 	}()
 
-	if nodeToRemove, ok := registry.Get(idToRemove); ok {
+	if nodeToRemove := registry.Remove(idToRemove); nodeToRemove != nil {
 		wheel.Remove(nodeToRemove)
-		registry.Remove(idToRemove)
 	}
 
 	<-ctx.Done()

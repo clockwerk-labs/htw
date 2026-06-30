@@ -55,8 +55,8 @@ func (tr *TaskRegistry[K, T]) Add(key K, node *Node[T]) {
 	tr.getShard(key).Add(key, node)
 }
 
-func (tr *TaskRegistry[K, T]) Remove(key K) {
-	tr.getShard(key).Remove(key)
+func (tr *TaskRegistry[K, T]) Remove(key K) *Node[T] {
+	return tr.getShard(key).Remove(key)
 }
 
 func (tr *TaskRegistry[K, T]) Get(key K) (*Node[T], bool) {
@@ -94,11 +94,18 @@ func (s *registryShard[K, T]) Add(key K, node *Node[T]) {
 	s.items[key] = node
 }
 
-func (s *registryShard[K, T]) Remove(key K) {
+func (s *registryShard[K, T]) Remove(key K) *Node[T] {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	node, ok := s.items[key]
+	if !ok {
+		return nil
+	}
+
 	delete(s.items, key)
+
+	return node
 }
 
 func (s *registryShard[K, T]) Clear() {
