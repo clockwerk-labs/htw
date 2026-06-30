@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/clockwerk-labs/htw"
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 )
 
@@ -53,11 +52,11 @@ func TestEngine_DeterministicExecution(t *testing.T) {
 
 	engine := htw.NewEngine(wheel, fakeClock, outChan)
 
-	task1 := htw.NewTask(uuid.New(), startTime.Add(20*time.Millisecond), "task-1")
-	task2 := htw.NewTask(uuid.New(), startTime.Add(40*time.Millisecond), "task-2")
+	task1 := htw.NewTask(startTime.Add(20*time.Millisecond), "task-1")
+	task2 := htw.NewTask(startTime.Add(40*time.Millisecond), "task-2")
 
-	require.True(t, wheel.Add(task1))
-	require.True(t, wheel.Add(task2))
+	require.NotNil(t, wheel.Add(task1))
+	require.NotNil(t, wheel.Add(task2))
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

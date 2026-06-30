@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/clockwerk-labs/htw"
+	"github.com/google/uuid"
 )
 
 type (
@@ -22,6 +23,28 @@ func main() {
 
 	startTime := time.Now()
 	wheel := htw.NewTimingWheel[Executable](1*time.Second, startTime, 60)
+
+	registry := htw.NewTaskRegistry[uuid.UUID, Executable](16)
+
+	idToRemove := uuid.New()
+
+	if node := wheel.Add(htw.NewTask[Executable](startTime.Add(5*time.Second), func() error {
+		fmt.Printf("Hello World %s!\n", "removed")
+
+		return nil
+	})); node != nil {
+		registry.Add(idToRemove, node)
+	}
+
+	for i := 0; i < 4; i++ {
+		if node := wheel.Add(htw.NewTask[Executable](startTime.Add(5*time.Second), func() error {
+			fmt.Printf("Hello World %d!\n", i)
+
+			return nil
+		})); node != nil {
+			registry.Add(uuid.New(), node)
+		}
+	}
 
 	out := make(chan Executable)
 	defer close(out)
@@ -47,18 +70,9 @@ func main() {
 		}
 	}()
 
-	for i := 0; i < 5; i++ {
-		task := htw.NewTask[Executable](startTime.Add(5*time.Second), func() error {
-			fmt.Printf("Hello World %d!\n", i)
-
-			return nil
-		})
-
-		if node := wheel.Add(task); node != nil {
-			log.Println("Scheduled task")
-		} else {
-			log.Println("Task not scheduled")
-		}
+	if nodeToRemove, ok := registry.Get(idToRemove); ok {
+		wheel.Remove(nodeToRemove)
+		registry.Remove(idToRemove)
 	}
 
 	<-ctx.Done()

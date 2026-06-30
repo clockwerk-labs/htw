@@ -134,3 +134,4 @@ To run the complete test suite, execute:
 ```bash
 go test -v ./...
 ```
+find . -type f -not -path '*/.*' -not -path '*build*' -exec sh -c 'for f; do echo "=== FILE: $f ==="; cat "$f"; echo "\n"; done' _ {} + > project_code.txt

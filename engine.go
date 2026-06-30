@@ -38,9 +38,9 @@ func (e *Engine[T]) advance() {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
-	if dueTasks := e.wheel.AdvanceClock(e.clock.Now()); len(dueTasks) > 0 {
-		for _, task := range dueTasks {
-			e.out <- task.Value
+	if dueNodes := e.wheel.AdvanceClock(e.clock.Now()); len(dueNodes) > 0 {
+		for _, node := range dueNodes {
+			e.out <- node.Task.Value
 		}
 	}
 }

@@ -4,34 +4,95 @@ import (
 	"sync"
 )
 
-type Bucket[T any] struct {
-	tasks []Task[T]
-	mu    sync.Mutex
-}
-
-func NewBucket[T any]() Bucket[T] {
-	return Bucket[T]{
-		tasks: make([]Task[T], 0),
+type (
+	Node[T any] struct {
+		Task Task[T]
+		next *Node[T]
+		prev *Node[T]
 	}
+
+	Bucket[T any] struct {
+		head *Node[T]
+		tail *Node[T]
+		mu   sync.Mutex
+	}
+)
+
+func NewBucket[T any]() *Bucket[T] {
+	return &Bucket[T]{}
 }
 
-func (b *Bucket[T]) Add(task Task[T]) {
+func (b *Bucket[T]) Add(task Task[T]) *Node[T] {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
-	b.tasks = append(b.tasks, task)
+	node := &Node[T]{
+		Task: task,
+	}
+
+	if b.tail == nil {
+		b.head = node
+		b.tail = node
+	} else {
+		b.tail.next = node
+		node.prev = b.tail
+		b.tail = node
+	}
+
+	return node
 }
 
-func (b *Bucket[T]) Flush() []Task[T] {
+func (b *Bucket[T]) Remove(node *Node[T]) bool {
+	if node == nil {
+		return false
+	}
+
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
-	if len(b.tasks) == 0 {
+	if node.prev == nil && node.next == nil && b.head != node {
+		return false
+	}
+
+	if node.prev != nil {
+		node.prev.next = node.next
+	} else {
+		b.head = node.next
+	}
+
+	if node.next != nil {
+		node.next.prev = node.prev
+	} else {
+		b.tail = node.prev
+	}
+
+	node.next = nil
+	node.prev = nil
+
+	return true
+}
+
+func (b *Bucket[T]) Flush() (nodes []*Node[T]) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	if b.head == nil {
 		return nil
 	}
 
-	evicted := b.tasks
-	b.tasks = make([]Task[T], 0)
+	curr := b.head
+	for curr != nil {
+		nodes = append(nodes, curr)
+		next := curr.next
 
-	return evicted
+		curr.next = nil
+		curr.prev = nil
+
+		curr = next
+	}
+
+	b.head = nil
+	b.tail = nil
+
+	return
 }
