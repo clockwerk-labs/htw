@@ -53,16 +53,16 @@ func TestRegistry_Concurrency(t *testing.T) {
 	numGoroutines := 50
 	operationsPerGoroutine := 100
 
-	for i := 0; i < numGoroutines; i++ {
+	for i := range numGoroutines {
 		wg.Go(func() {
-			for j := 0; j < operationsPerGoroutine; j++ {
+			for j := range operationsPerGoroutine {
 				key := i*operationsPerGoroutine + j
 				reg.Add(key, j)
 			}
 		})
 	}
 
-	for i := 0; i < 5; i++ {
+	for range 5 {
 		wg.Go(func() {
 			for val := range reg.GetAll() {
 				_ = val

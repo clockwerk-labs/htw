@@ -106,7 +106,7 @@ func BenchmarkEngine_Throughput(b *testing.B) {
 	wheel := htw.NewTimingWheel[int](1*time.Millisecond, startTime, 100)
 	outChan := make(chan int, b.N)
 
-	for i := 0; i < b.N; i++ {
+	for i := range b.N {
 		wheel.Add(htw.NewTask(startTime.Add(5*time.Millisecond), i))
 	}
 
@@ -133,7 +133,7 @@ func BenchmarkEngine_Throughput(b *testing.B) {
 		}
 	})
 
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		mockClock.Tick(1 * time.Millisecond)
 	}
 

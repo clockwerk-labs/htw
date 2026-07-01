@@ -2,6 +2,7 @@ package htw
 
 import (
 	"context"
+	"fmt"
 )
 
 type Engine[T any] struct {
@@ -25,7 +26,11 @@ func (e *Engine[T]) Run(ctx context.Context) error {
 	for {
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
+			if err := ctx.Err(); err != nil {
+				return fmt.Errorf("engine stopped: %w", err)
+			}
+
+			return nil
 		case <-tickChan:
 			e.advance()
 		}

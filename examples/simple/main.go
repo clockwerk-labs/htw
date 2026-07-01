@@ -46,7 +46,7 @@ func main() {
 		}
 	}()
 
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		task := htw.NewTask[Executable](startTime.Add(5*time.Second), func() error {
 			log.Printf("Hello World %d!", i)
 

@@ -46,7 +46,7 @@ func main() {
 		}
 	}()
 
-	taskId := uuid.New()
+	taskID := uuid.New()
 
 	initialTask := htw.NewTask[Executable](time.Now().Add(3*time.Second), func() error {
 		log.Println("This shouldn't print if rescheduled successfully!")
@@ -55,16 +55,16 @@ func main() {
 	})
 
 	if node := wheel.Add(initialTask); node != nil {
-		registry.Add(taskId, node)
+		registry.Add(taskID, node)
 
-		log.Println("Scheduled task", taskId.String())
+		log.Println("Scheduled task", taskID.String())
 	}
 
 	time.Sleep(1 * time.Second)
 
-	if oldNode, ok := registry.Remove(taskId); ok {
+	if oldNode, ok := registry.Remove(taskID); ok {
 		if wheel.Remove(oldNode) {
-			log.Printf("Removed task %s", taskId.String())
+			log.Printf("Removed task %s", taskID.String())
 		}
 	}
 
@@ -75,9 +75,9 @@ func main() {
 	})
 
 	if newNode := wheel.Add(updatedTask); newNode != nil {
-		registry.Add(taskId, newNode)
+		registry.Add(taskID, newNode)
 
-		log.Println("Rescheduled task", taskId.String())
+		log.Println("Rescheduled task", taskID.String())
 	}
 
 	<-ctx.Done()

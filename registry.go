@@ -8,7 +8,7 @@ import (
 
 type (
 	Registry[K comparable, T any] struct {
-		mask   uint32
+		mask   uint64
 		shards []*registryShard[K, T]
 		seed   maphash.Seed
 	}
@@ -25,14 +25,14 @@ func NewRegistry[K comparable, T any](shardCount int) *Registry[K, T] {
 	}
 
 	shards := make([]*registryShard[K, T], shardCount)
-	for i := 0; i < shardCount; i++ {
+	for i := range shardCount {
 		shards[i] = &registryShard[K, T]{
 			items: make(map[K]T),
 		}
 	}
 
 	return &Registry[K, T]{
-		mask:   uint32(shardCount - 1),
+		mask:   uint64(shardCount - 1),
 		shards: shards,
 		seed:   maphash.MakeSeed(),
 	}
@@ -67,7 +67,7 @@ func (tr *Registry[K, T]) GetAll() iter.Seq[T] {
 }
 
 func (tr *Registry[K, T]) getShard(key K) *registryShard[K, T] {
-	return tr.shards[uint32(maphash.Comparable(tr.seed, key))&tr.mask]
+	return tr.shards[maphash.Comparable(tr.seed, key)&tr.mask]
 }
 
 func (s *registryShard[K, T]) Add(key K, value T) {

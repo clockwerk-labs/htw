@@ -38,7 +38,7 @@ func main() {
 		log.Printf("Added %s", idToRemove)
 	}
 
-	for i := 0; i < 4; i++ {
+	for i := range 4 {
 		if node := wheel.Add(htw.NewTask[Executable](startTime.Add(5*time.Second), func() error {
 			log.Printf("Hello World %d!", i)
 
