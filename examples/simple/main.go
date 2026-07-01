@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log"
 	"os/signal"
 	"syscall"
@@ -49,15 +48,15 @@ func main() {
 
 	for i := 0; i < 5; i++ {
 		task := htw.NewTask[Executable](startTime.Add(5*time.Second), func() error {
-			fmt.Printf("Hello World %d!\n", i)
+			log.Printf("Hello World %d!", i)
 
 			return nil
 		})
 
 		if node := wheel.Add(task); node != nil {
-			log.Println("Scheduled task")
+			log.Printf("Scheduled task %d", i)
 		} else {
-			log.Println("Task not scheduled")
+			log.Printf("Task %d not scheduled", i)
 		}
 	}
 

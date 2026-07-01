@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log"
 	"os/signal"
 	"syscall"
@@ -21,10 +20,8 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
-	startTime := time.Now()
-
-	wheel := htw.NewTimingWheel[Executable](1*time.Second, startTime, 60)
-	registry := htw.NewTaskRegistry[uuid.UUID, Executable](16)
+	wheel := htw.NewTimingWheel[Executable](1*time.Second, time.Now(), 60)
+	registry := htw.NewRegistry[uuid.UUID, *htw.Node[Executable]](16)
 
 	out := make(chan Executable)
 	defer close(out)
@@ -49,32 +46,38 @@ func main() {
 		}
 	}()
 
-	taskID := uuid.New()
-	initialExpiry := startTime.Add(3 * time.Second)
+	taskId := uuid.New()
 
-	initialTask := htw.NewTask[Executable](initialExpiry, func() error {
-		fmt.Println("This shouldn't print if rescheduled successfully!")
+	initialTask := htw.NewTask[Executable](time.Now().Add(3*time.Second), func() error {
+		log.Println("This shouldn't print if rescheduled successfully!")
+
 		return nil
 	})
 
 	if node := wheel.Add(initialTask); node != nil {
-		registry.Add(taskID, node)
+		registry.Add(taskId, node)
+
+		log.Println("Scheduled task", taskId.String())
 	}
 
 	time.Sleep(1 * time.Second)
 
-	if oldNode := registry.Remove(taskID); oldNode != nil {
-		wheel.Remove(oldNode)
+	if oldNode, ok := registry.Remove(taskId); ok {
+		if wheel.Remove(oldNode) {
+			log.Printf("Removed task %s", taskId.String())
+		}
 	}
 
-	newExpiry := time.Now().Add(7 * time.Second)
-	updatedTask := htw.NewTask[Executable](newExpiry, func() error {
-		fmt.Println("Success! The updated task was executed at its new prolonged time.")
+	updatedTask := htw.NewTask[Executable](time.Now().Add(7*time.Second), func() error {
+		log.Println("Success! The updated task was executed at its new prolonged time.")
+
 		return nil
 	})
 
 	if newNode := wheel.Add(updatedTask); newNode != nil {
-		registry.Add(taskID, newNode)
+		registry.Add(taskId, newNode)
+
+		log.Println("Rescheduled task", taskId.String())
 	}
 
 	<-ctx.Done()

@@ -2,14 +2,12 @@ package htw
 
 import (
 	"context"
-	"sync"
 )
 
 type Engine[T any] struct {
 	wheel *TimingWheel[T]
 	clock Clock
 	out   chan T
-	mu    sync.Mutex
 }
 
 func NewEngine[T any](wheel *TimingWheel[T], clock Clock, out chan T) *Engine[T] {
@@ -35,9 +33,6 @@ func (e *Engine[T]) Run(ctx context.Context) error {
 }
 
 func (e *Engine[T]) advance() {
-	e.mu.Lock()
-	defer e.mu.Unlock()
-
 	if dueNodes := e.wheel.AdvanceClock(e.clock.Now()); len(dueNodes) > 0 {
 		for _, node := range dueNodes {
 			e.out <- node.Task.Value

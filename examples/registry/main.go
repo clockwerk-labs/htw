@@ -24,25 +24,29 @@ func main() {
 	startTime := time.Now()
 	wheel := htw.NewTimingWheel[Executable](1*time.Second, startTime, 60)
 
-	registry := htw.NewTaskRegistry[uuid.UUID, Executable](16)
+	registry := htw.NewRegistry[uuid.UUID, *htw.Node[Executable]](16)
 
 	idToRemove := uuid.New()
 
 	if node := wheel.Add(htw.NewTask[Executable](startTime.Add(5*time.Second), func() error {
-		fmt.Printf("Hello World %s!\n", "removed")
+		fmt.Printf("Hello World %s!", "removed")
 
 		return nil
 	})); node != nil {
 		registry.Add(idToRemove, node)
+
+		log.Printf("Added %s", idToRemove)
 	}
 
 	for i := 0; i < 4; i++ {
 		if node := wheel.Add(htw.NewTask[Executable](startTime.Add(5*time.Second), func() error {
-			fmt.Printf("Hello World %d!\n", i)
+			log.Printf("Hello World %d!", i)
 
 			return nil
 		})); node != nil {
 			registry.Add(uuid.New(), node)
+
+			log.Printf("Added %s", idToRemove)
 		}
 	}
 
@@ -70,8 +74,10 @@ func main() {
 		}
 	}()
 
-	if nodeToRemove := registry.Remove(idToRemove); nodeToRemove != nil {
-		wheel.Remove(nodeToRemove)
+	if nodeToRemove, ok := registry.Remove(idToRemove); ok {
+		if wheel.Remove(nodeToRemove) {
+			log.Printf("Removed %s", idToRemove.String())
+		}
 	}
 
 	<-ctx.Done()

@@ -1,9 +1,5 @@
 package htw
 
-import (
-	"sync"
-)
-
 type (
 	Node[T any] struct {
 		Task Task[T]
@@ -14,7 +10,6 @@ type (
 	Bucket[T any] struct {
 		head *Node[T]
 		tail *Node[T]
-		mu   sync.Mutex
 	}
 )
 
@@ -23,9 +18,6 @@ func NewBucket[T any]() *Bucket[T] {
 }
 
 func (b *Bucket[T]) Add(task Task[T]) *Node[T] {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-
 	node := &Node[T]{
 		Task: task,
 	}
@@ -46,9 +38,6 @@ func (b *Bucket[T]) Remove(node *Node[T]) bool {
 	if node == nil {
 		return false
 	}
-
-	b.mu.Lock()
-	defer b.mu.Unlock()
 
 	if node.prev == nil && node.next == nil && b.head != node {
 		return false
@@ -73,11 +62,8 @@ func (b *Bucket[T]) Remove(node *Node[T]) bool {
 }
 
 func (b *Bucket[T]) Flush() (nodes []*Node[T]) {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-
 	if b.head == nil {
-		return nil
+		return
 	}
 
 	curr := b.head
